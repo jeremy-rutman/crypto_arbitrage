@@ -162,7 +162,7 @@ def currency_conversion():
 #    dict=ast.literal_eval(data.text)
     dict=data.text
     dict=json.loads(data.text)
-    print('url {} text {}'.format(data.url,dict))
+  #  print('url {} text {}'.format(data.url,dict))
     usd_ils=dict['quotes']['USDILS']
     usd_eur=dict['quotes']['USDEUR']
     usd_btc=dict['quotes']['USDBTC']
