@@ -172,7 +172,7 @@ def currency_conversion():
     df=pandas.DataFrame(data=listdata,columns=['USDILS','USDEUR','USDBTC','USDJPY'])
     return(df)
 
-
+#
 if __name__=="__main__":
     while(1):
         fname='btc_data_'+str(int(time.time()))+'.xlsx'
