@@ -51,8 +51,8 @@ def bitflyer_ticker():
     retval['bid_depth']=ticker['total_bid_depth']
     retval['ask_depth']=ticker['total_ask_depth']
 #    s=pandas.Series(data=retval,index=index)
-    index=['lastprice']
-    df=pandas.DataFrame(data=retval,columns=['lastprice'],index=index)
+    row=[retval['bid'],retval['bidsize'],retval['bid_depth'],retval['ask'],retval['asksize'],retval['ask_depth'],retval['lastprice']]
+    df=pandas.DataFrame(data=[row],columns=['bid','bidsize','bid_depth','ask','asksize','ask_depth','lastprice'])
     return df
 
 
