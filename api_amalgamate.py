@@ -191,7 +191,7 @@ def currency_conversion():
     print('listdata {}'.format(listdata))
     df=pandas.DataFrame(data=listdata,columns=['USDILS','USDEUR','USDBTC','USDJPY'])
     return(df)
-
+#
 #
 if __name__=="__main__":
     kraken_ticker()
