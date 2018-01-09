@@ -42,70 +42,81 @@ def bitflyer_ticker():
 #     'total_bid_depth': 4277.58274837, 'best_ask': 1724530.0}
 
     print(ticker)
+    product = ticker['product_code']
+    if product=='BTC_JPY':
+        coin = 'BTC'
+    elif product == 'LTC_JPY':  # todo see how to get ltc from bitflyer
+        coin = 'LTC'
+    bidname='bid_JPY_'+coin
+    askname='ask_JPY_'+coin
+
     retval={}
     retval['lastprice']=ticker['ltp']
-    retval['bid']=ticker['best_bid']
-    retval['bidsize']=ticker['best_bid_size']
-    retval['ask']=ticker['best_ask']
-    retval['asksize']=ticker['best_ask_size']
+    retval[bidname]=ticker['best_bid']
+    retval['bid_volume']=ticker['best_bid_size']
+    retval[askname]=ticker['best_ask']
+    retval['ask_volume']=ticker['best_ask_size']
     retval['bid_depth']=ticker['total_bid_depth']
     retval['ask_depth']=ticker['total_ask_depth']
-#    s=pandas.Series(data=retval,index=index)
-    row=[retval['bid'],retval['bidsize'],retval['bid_depth'],retval['ask'],retval['asksize'],retval['ask_depth'],retval['lastprice']]
-    df=pandas.DataFrame(data=[row],columns=['bid','bidsize','bid_depth','ask','asksize','ask_depth','lastprice'])
-    return df
+
+    #    s=pandas.Series(data=retval,index=index)
+    # row=[retval['bid'],retval['bidsize'],retval['bid_depth'],retval['ask'],retval['asksize'],retval['ask_depth'],retval['lastprice']]
+    # df=pandas.DataFrame(data=[row],columns=['bid','bidsize','bid_depth','ask','asksize','ask_depth','lastprice'])
+
+    return(retval)
 
 
-def bit2c_ticker(url_ticker='https://www.bit2c.co.il/Exchanges/BtcNis/Ticker.json'):
-    data = safe_get(url_ticker)
-    print('url {} text {}'.format(data.url,data.text))
-    print('data for rget:{}'.format(data))
-    tick=ast.literal_eval(data.text)
-#    t=json.dumps(data.text)
- #   print(tick)
-    print('last {} highest buy order {} lowest sell {} vol24h {} av24h {}'.format(tick['ll'],tick['h'],tick['l'],tick['a'],tick['av']))
-
-    url_ticker='https://www.bit2c.co.il/Exchanges/BtcNis/orderbook.json'
-    data = safe_get(url_ticker)
+def bit2c_ticker(coin='BTC'):
+    if coin=='BTC':
+        #url_ticker = 'https://www.bit2c.co.il/Exchanges/BtcNis/Ticker.json'
+        url_orderbook = 'https://www.bit2c.co.il/Exchanges/BtcNis/orderbook.json'
+    elif coin=='LTC':
+        url_orderbook = 'https://www.bit2c.co.il/Exchanges/LtcNis/orderbook.json'
+#     print('url {} text {}'.format(data.url,data.text))
+#     print('data for rget:{}'.format(data))
+#     tick=ast.literal_eval(data.text)
+#     print('last {} highest buy order {} lowest sell {} vol24h {} av24h {}'.format(tick['ll'],tick['h'],tick['l'],tick['a'],tick['av']))
+#     url_ticker='https://www.bit2c.co.il/Exchanges/BtcNis/orderbook.json'
+    data = safe_get(url_orderbook)
     if data is None:
-        return None,None,None
-#    print('url {} text {}'.format(data.url,data.text))
-#    print('data for rget:{}'.format(data))
+        return None
     book=ast.literal_eval(data.text)
 #    t=json.dumps(data.text)
-#    print(book)
-  #  print('last {} highest buy order {} lowest sell {} vol24h {} av24h {}'.format(t['ll'],t['h'],t['l'],t['a'],t['av']))
-    #pd.DataFrame(raw_data, columns = ['first_name', 'last_name', 'age', 'preTestScore', 'postTestScore'])
+    # df3=pandas.DataFrame(data=tickdata,columns=['last','highbuy','lowsell'])
+    bidname='bid_ILS_'+coin
+    askname='ask_ILS_'+coin
+    retdict = {bidname:book['bids'][0][0]}
+    retdict['bid_volume']=book['bids'][0][1]
+    retdict[askname]=book['asks'][0][0]
+    retdict['ask_volume'] = book['bids'][0][1]
+    return(retdict)
 
-    retval={}
-    retval['bids']=book['bids']
-    retval['asks']=book['asks']
-    retval['ticker']=tick
-    print('bids {}'.format(book['bids']))
-    df1=pandas.DataFrame(data=book['bids'],columns=['ils_btc','vol','time'])
-    df2=pandas.DataFrame(data=book['asks'],columns=['ils_btc','vol','time'])
-    tickdata=[[tick['ll'],tick['h'],tick['l']]]
-    print('tickdata {}'.format(tickdata))
-    df3=pandas.DataFrame(data=tickdata,columns=['last','highbuy','lowsell'])
-    return(df1,df2,df3)
-
-def kraken_ticker():
+def kraken_ticker(coin_pair='BTC_EUR'):
     api = krakenex.API()
     k = KrakenAPI(api)
 
-#   pair="BCHUSD"
-    pair='XXBTZEUR'
+    if coin_pair=='BTC_EUR':
+        pair='XXBTZEUR'
+    elif coin_pair == 'BCH_USD':
+        pair="BCHUSD"
+    elif coin_pair == 'LTC_EUR':
+        pair="XLTCZEUR"
+    else:
+        print('didnt understand coin pair {}'.format(coin_pair))
+        return None
+
     ohlc, last = k.get_ohlc_data(pair=pair)
  #   print(ohlc)
  #   print(last)
     latest_row=ohlc.iloc[0,:]
-    print('ticker {}'.format(latest_row))
+    print('ticker latest row{}'.format(latest_row))
     # p=k.get_tradable_asset_pairs( info=None, pair=None)
     # print(p)
 
     # p=k.get_asset_info(asset="BTC")
     # print(p)
     tick=k.get_ticker_information(pair=pair)
+    print('ticker info {}'.format(tick))
     #ticker info:
         # <pair_name> = pair name
     # a = ask array(<price>, <whole lot volume>, <lot volume>),
@@ -131,6 +142,15 @@ def kraken_ticker():
     retval={}
     retval['book']=book
     retval['spread']=spread
+
+#    retval['lastprice']=ticker['ltp']
+#     retval[bidname]=ticker['best_bid']
+#     retval['bid_volume']=ticker['best_bid_size']
+#     retval[askname]=ticker['best_ask']
+#     retval['ask_volume']=ticker['best_ask_size']
+#     retval['bid_depth']=ticker['total_bid_depth']
+#     retval['ask_depth']=ticker['total_ask_depth']
+
 
 #    retval['asks']=book['asks']
     retval['ticker']=tick
@@ -174,6 +194,7 @@ def currency_conversion():
 
 #
 if __name__=="__main__":
+    kraken_ticker()
     while(1):
         fname='btc_data_'+str(int(time.time()))+'.xlsx'
         fname=os.path.join(os.getcwd(),fname)
