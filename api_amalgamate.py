@@ -90,7 +90,7 @@ def bit2c_ticker(coin='BTC'):
     retdict[askname]=book['asks'][0][0]
     retdict['ask_volume'] = book['bids'][0][1]
     return(retdict)
-
+#
 def kraken_ticker(coin_pair='BTC_EUR'):
     api = krakenex.API()
     k = KrakenAPI(api)
