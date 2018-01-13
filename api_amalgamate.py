@@ -2,24 +2,26 @@ __author__ = 'jeremy'
 
 import krakenex
 from pykrakenapi import KrakenAPI
-#pip install pykrakenapi
+#pip3 install pykrakenapi
 from bitflyer import public
-#pip install bitflyer
+#pip3 install bitflyer
 
 import time
 import ast
 import sys
 import os
+import pandas
+import requests, json
+
+import numpy as np
+from random import choice
 
 # import urllib.request
 # from urllib.request import Request, urlopen
 #from urllib.request import  urlopen
 #import urllib2
-
-import pandas
-from random import choice
-
 # import requests
+#selenium is a web browser spawnable from python
 # from selenium import webdriver
 # from selenium.webdriver.common.keys import Keys
 # from selenium.webdriver.common.by import By
@@ -27,29 +29,25 @@ from random import choice
 # from selenium.webdriver.support import expected_conditions as EC
 
 
-url='https://www.bit2c.co.il/'
-
-import numpy as np
-
-import requests, json
-
-def bitflyer_ticker():
+def bitflyer_ticker(pair='BTC_JPY'):
     ticker = public.Public().getticker()
     #returns eg
 #    {'volume': 216014.77565499, 'product_code': 'BTC_JPY', 'tick_id': 1730512, 'ltp': 1724530.0,
 #     'timestamp': '2017-12-10T22:39:02.24', 'best_bid': 1723374.0, 'best_ask_size': 16.690179,
 #     'total_ask_depth': 2087.30139103, 'volume_by_product': 39867.96588841, 'best_bid_size': 0.40004,
 #     'total_bid_depth': 4277.58274837, 'best_ask': 1724530.0}
-
     print(ticker)
     product = ticker['product_code']
     if product=='BTC_JPY':
-        coin = 'BTC'
-    elif product == 'LTC_JPY':  # todo see how to get ltc from bitflyer
-        coin = 'LTC'
-    bidname='bid_JPY_'+coin
-    askname='ask_JPY_'+coin
+        coin2 = 'BTC'
+        coin1 = 'JPY'
+    elif product == 'LTC_JPY':  # todo see how to get ltc/etc from bitflyer
+        coin2 = 'LTC'
+        coin1 = 'JPY'
+    bidname='bid_'+coin1+'_'+coin2
+    askname='ask_'+coin1+'_'+coin2
 
+    all_vals=[]
     retval={}
     retval['lastprice']=ticker['ltp']
     retval[bidname]=ticker['best_bid']
@@ -58,21 +56,27 @@ def bitflyer_ticker():
     retval['ask_volume']=ticker['best_ask_size']
     retval['bid_depth']=ticker['total_bid_depth']
     retval['ask_depth']=ticker['total_ask_depth']
+    retval['exchange'] = 'bitflyer'
+    retval['timestamp'] = ticker('timestamp')
 
     #    s=pandas.Series(data=retval,index=index)
     # row=[retval['bid'],retval['bidsize'],retval['bid_depth'],retval['ask'],retval['asksize'],retval['ask_depth'],retval['lastprice']]
     # df=pandas.DataFrame(data=[row],columns=['bid','bidsize','bid_depth','ask','asksize','ask_depth','lastprice'])
+    all_vals.append(retval)
+    return(all_vals)
 
-    return(retval)
 
-
-def bit2c_ticker(coin='BTC'):
-    if coin=='BTC':
+def bit2c_ticker(pair='ILS_BTC'):
+    if pair=='ILS_BTC':
         #url_ticker = 'https://www.bit2c.co.il/Exchanges/BtcNis/Ticker.json'
         url_orderbook = 'https://www.bit2c.co.il/Exchanges/BtcNis/orderbook.json'
-    elif coin=='LTC':
+        coin1 = 'ILS'
+        coin2 = 'BTC'
+    elif pair=='ILS_LTC':
         url_orderbook = 'https://www.bit2c.co.il/Exchanges/LtcNis/orderbook.json'
-#     print('url {} text {}'.format(data.url,data.text))
+        coin1 = 'ILS'
+        coin2 = 'LTC'
+    #     print('url {} text {}'.format(data.url,data.text))
 #     print('data for rget:{}'.format(data))
 #     tick=ast.literal_eval(data.text)
 #     print('last {} highest buy order {} lowest sell {} vol24h {} av24h {}'.format(tick['ll'],tick['h'],tick['l'],tick['a'],tick['av']))
@@ -83,40 +87,56 @@ def bit2c_ticker(coin='BTC'):
     book=ast.literal_eval(data.text)
 #    t=json.dumps(data.text)
     # df3=pandas.DataFrame(data=tickdata,columns=['last','highbuy','lowsell'])
-    bidname='bid_ILS_'+coin
-    askname='ask_ILS_'+coin
-    retdict = {bidname:book['bids'][0][0]}
-    retdict['bid_volume']=book['bids'][0][1]
-    retdict[askname]=book['asks'][0][0]
-    retdict['ask_volume'] = book['bids'][0][1]
-    return(retdict)
+    bidname='bid_'+coin1+'_'+coin2
+    askname='ask_'+coin1+'_'+coin2
+    all_vals=[]
+    retval = {}
+    retval[bidname]=book['bids'][0][0]
+    retval['bid_volume']=book['bids'][0][1]
+    retval[askname]=book['asks'][0][0]
+    retval['ask_volume'] = book['bids'][0][1]
+    retval['exchange'] = 'bit2c'
+    retval['timestamp'] = round(time.time(),1)
+    all_vals.append(retval)
+    return(all_vals)
 #
-def kraken_ticker(coin_pair='BTC_EUR'):
+def kraken_ticker(pair='BTC_EUR'):
     api = krakenex.API()
     k = KrakenAPI(api)
 
-    if coin_pair=='BTC_EUR':
+    if pair=='BTC_EUR':
         pair='XXBTZEUR'
-    elif coin_pair == 'BCH_USD':
+        coin1='BTC'
+        coin2='EUR'
+    elif pair == 'BCH_USD':
         pair="BCHUSD"
-    elif coin_pair == 'LTC_EUR':
+        coin1 = 'BCH'
+        coin2 = 'USD'
+
+    elif pair == 'LTC_EUR':
         pair="XLTCZEUR"
+        coin1 = 'LTC'
+        coin2 = 'EUR'
+
     else:
-        print('didnt understand coin pair {}'.format(coin_pair))
+        print('didnt understand coin pair {}'.format(pair))
         return None
-
-    ohlc, last = k.get_ohlc_data(pair=pair)
- #   print(ohlc)
- #   print(last)
-    latest_row=ohlc.iloc[0,:]
-    print('ticker latest row{}'.format(latest_row))
-    # p=k.get_tradable_asset_pairs( info=None, pair=None)
+ #
+ #    ohlc, last = k.get_ohlc_data(pair=pair)
+ # #   print(ohlc)
+ # #   print(last)
+ #    latest_row=ohlc.iloc[0,:]
+ #    print('ticker latest row{}'.format(latest_row))
+ #    # p=k.get_tradable_asset_pairs( info=None, pair=None)
+ #    # print(p)
+ #
+ #    # p=k.get_asset_info(asset="BTC")
     # print(p)
+    pairs = ['XXBTZEUR',"BCHUSD","XLTCZEUR"]
+    tick=k.get_ticker_information(pair=pairs)
+    print('kraken ticker info {}'.format(tick))
 
-    # p=k.get_asset_info(asset="BTC")
-    # print(p)
-    tick=k.get_ticker_information(pair=pair)
-    print('ticker info {}'.format(tick))
+
     #ticker info:
         # <pair_name> = pair name
     # a = ask array(<price>, <whole lot volume>, <lot volume>),
@@ -131,30 +151,47 @@ def kraken_ticker(coin_pair='BTC_EUR'):
 #    print('ticker {}'.format(tick))
 
   #  help(KrakenAPI)
-    book=k.get_order_book( pair=pair, count=100)
-    print('book {}'.format(book))
-    spread=k.get_recent_spread_data( pair=pair, since=None)
+  #   book=k.get_order_book( pair=pair, count=100)
+  #   print('book {}'.format(book))
+  #   spread=k.get_recent_spread_data( pair=pair, since=None)
  #   print('spread {}'.format(spread))
     # p=k.get_recent_trades( pair=pair, since=None)
     # print(p)
     # k.get_open_orders()
     # k.get_open_positions()
+    all_vals=[]
     retval={}
-    retval['book']=book
-    retval['spread']=spread
+#    retval['book']=book
+#    retval['spread']=spread
 
-#    retval['lastprice']=ticker['ltp']
-#     retval[bidname]=ticker['best_bid']
-#     retval['bid_volume']=ticker['best_bid_size']
-#     retval[askname]=ticker['best_ask']
-#     retval['ask_volume']=ticker['best_ask_size']
-#     retval['bid_depth']=ticker['total_bid_depth']
-#     retval['ask_depth']=ticker['total_ask_depth']
+    api_url = 'https://api.kraken.com/0/public/Ticker?pair=XXBTZEUR'
+    data = safe_get(api_url)
+    if data is None:
+        return None
+    book=ast.literal_eval(data.text)
+    print('and the boook {} '.format(book))
 
+
+    bidname = 'bid_' + coin1 + '_' + coin2
+    askname = 'ask_' + coin1 + '_' + coin2
+
+    retval['lastprice']=tick['c'][0]
+    retval[bidname]=tick['b'][0][0]
+    retval['bid_volume']=tick['b'][0][2]
+    retval[askname]=tick['a'][0][0]
+    retval['ask_volume']=tick['a'][0][2]
+    retval['exchange'] = 'kraken'
+    retval['timestamp'] = round(time.time(),1)
+
+    all_vals.append(retval)
+    return all_vals
 
 #    retval['asks']=book['asks']
-    retval['ticker']=tick
-    return(book,spread,tick)
+#    retval['ticker']=tick
+
+
+
+#    return(book,spread,tick)
 
 def safe_get(url,max_attempts=5):
     n_attempts=0
@@ -168,6 +205,9 @@ def safe_get(url,max_attempts=5):
             time.sleep(5)
     return None
 
+
+def get_api_infos():
+    pass
 
 def currency_conversion():
     key='831d719df8441bcec7e2c4456f8f22ab'
@@ -194,8 +234,13 @@ def currency_conversion():
 #
 #
 if __name__=="__main__":
-    kraken_ticker()
-    while(1):
+    d=kraken_ticker()
+    print('kraken {}'.format(d))
+    d=bit2c_ticker()
+    print('bit2c {}'.format(d))
+    d=bitflyer_ticker()
+    print('bitflyer {}'.format(d))
+    while(0):
         fname='btc_data_'+str(int(time.time()))+'.xlsx'
         fname=os.path.join(os.getcwd(),fname)
         print('cwd:'+str(os.getcwd())+' fname '+str(fname))
