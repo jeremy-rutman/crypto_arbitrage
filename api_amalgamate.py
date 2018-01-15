@@ -301,6 +301,17 @@ def bit2c_ticker(pair='ILS_BTC'):
     retval['timestamp'] = round(time.time(),1)
     return(retval)
 #
+
+def generate_extra_pairs(tick_list):
+    '''
+    given e.g. eur-ltc and eur-btc , generate ltc-btc
+
+    :param tick_list:
+    :return:
+    '''
+    pass
+
+
 def kraken_ticker_multi(pairs=['EUR_BTC','EUR_LTC','BTC_BCH','BTC_ETH']): #eur_bch
     #asset pairs -  https://api.kraken.com/0/public/AssetPairs
     # api = krakenex.API()
