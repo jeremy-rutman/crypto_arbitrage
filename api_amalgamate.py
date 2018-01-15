@@ -36,7 +36,124 @@ from random import choice
 # from selenium.webdriver.support.ui import WebDriverWait
 # from selenium.webdriver.support import expected_conditions as EC
 
-def bitflyer_ticker_multi(pairs=['BTC_JPY','ETC_BTC','BCH_BTC']):
+class arbitrageur():
+    def __init__(self):
+        self.time_of_last_conversion_check=0 #seconds
+        self.currency_update_interval = 3600 #seconds
+        self.time_of_last_api_check = 0 #seconds
+        self.api_update_interval = 10 #seconds
+        self.update_info()
+
+    def update_info(self):
+        currency_update_interval = 3600.0
+        if time.time()-self.time_of_last_conversion_check > self.currency_update_interval:
+            self.currency_conversions=get_currency_conversions()
+            self.time
+        if time.time()-self.time_of_last_api_check > self.api_update_interval:
+            self.api_prices = get_all_apis()
+            self.api_prices = convert(self.api_prices,self.currency_conversions)
+            self.time_of_last_api_check = time.time()
+
+        print('currencies last update {} apis {}'.format(self.time_of_last_conversion_check,self.time_of_last_api_check))
+        print(json.dumps(self.currency_conversions,indent=2))
+        print(json.dumps(self.api_prices,indent=2))
+
+    #    retval['asks']=book['asks']
+    #    retval['ticker']=tick
+
+    #    return(book,spread,tick)
+
+def safe_get(url,max_attempts=5):
+    n_attempts=0
+    while(n_attempts<max_attempts):
+        try:
+            data = requests.get(url)
+            return data
+        except:
+            print('exception '+str(sys.exc_info()))
+            n_attempts+=1
+            time.sleep(5)
+    return None
+
+
+def get_currency_conversions():
+    '''
+    todo - check this once/hr or dt since they are only updating 1/hr , or use another api
+    :return:
+    '''
+    key='831d719df8441bcec7e2c4456f8f22ab'
+    url='http://www.apilayer.net/api/live?access_key=831d719df8441bcec7e2c4456f8f22ab&format=1'
+    success=False
+    n_attempts=0
+    data=safe_get(url)
+    if data is None:
+        return None
+ #   print('url {} text {}'.format(data.url,data.text))
+#    print('data for rget:{}'.format(data))
+#    dict=ast.literal_eval(data.text)
+    dict=data.text
+    dict=json.loads(data.text)
+    print('url {} text {}'.format(data.url,dict))
+    usd_ils=dict['quotes']['USDILS']
+    usd_eur=dict['quotes']['USDEUR']
+    usd_btc=dict['quotes']['USDBTC']
+    usd_jpy=dict['quotes']['USDJPY']
+
+    retval = {}
+    retval['exchange']='currencies'
+    retval['ILS_USD']=usd_ils
+    retval['EUR_USD']=usd_eur
+    retval['JPY_USD']=usd_jpy
+    return retval
+
+    # listdata=[[usd_ils,usd_eur,usd_btc,usd_jpy]]
+    # print('listdata {}'.format(listdata))
+    # df=pandas.DataFrame(data=listdata,columns=['USDILS','USDEUR','USDBTC','USDJPY'])
+    # return(df)
+#
+
+
+def convert(prices,currency_convert):
+    '''
+    add euro prices to all fiat currencies that arent already euro
+    :param prices:
+    :param currency_convert:
+    :return:
+    '''
+    jpy_eur = currency_convert['JPY_USD'] / currency_convert['EUR_USD']
+    ils_eur = currency_convert['ILS_USD'] / currency_convert['EUR_USD']
+    eur_jpy = currency_convert['EUR_USD'] / currency_convert['JPY_USD']
+    eur_ils = currency_convert['EUR_USD'] / currency_convert['ILS_USD']
+    print('usdjpy {} eurusd{} jpyeur {} ilseur {}'.format(currency_convert['JPY_USD'], currency_convert['EUR_USD'],
+                                                          jpy_eur, ils_eur))
+    for tick in prices:
+        print('tick:{}'.format(tick))
+        coin1,coin2 = tick['pair'].split('_')
+        if coin1 == 'JPY': #       ,'USD','ILS']:
+            tick['ask_eur']=tick['ask'] * eur_jpy
+            tick['bid_eur'] = tick['bid'] * eur_jpy
+        elif coin1 == 'USD': #       ,'USD','ILS']:
+            tick['ask_eur']=tick['ask'] * currency_convert['EUR_USD']
+            tick['bid_eur']=tick['bid'] * currency_convert['EUR_USD']
+        elif coin1 == 'ILS': #       ,'USD','ILS']:
+            tick['ask_eur']=tick['ask'] * eur_ils
+            tick['bid_eur']=tick['bid'] * eur_ils
+
+        if coin2 == 'JPY': #       ,'USD','ILS']:
+            tick['ask_eur']=tick['ask'] / eur_jpy
+            tick['bid_eur'] = tick['bid'] / eur_jpy
+        elif coin2 == 'USD': #       ,'USD','ILS']:
+            tick['ask_eur']=tick['ask'] / currency_convert['EUR_USD']
+            tick['bid_eur']=tick['bid'] / currency_convert['EUR_USD']
+        elif coin2 == 'ILS': #       ,'USD','ILS']:
+            tick['ask_eur']=tick['ask'] / eur_ils
+            tick['bid_eur']=tick['bid'] / eur_ils
+    return(prices)
+
+#
+
+
+def bitflyer_ticker_multi(pairs=['BTC_JPY','BCH_BTC']):  #'ETC_BTC'
     all_results = []
     p=Pool(len(pairs))
     all_results = p.map(bitflyer_ticker,pairs)
@@ -50,7 +167,7 @@ def bitflyer_ticker(pair='BTC_JPY'):
 
 #for list of markets:
 #    https: // api.bitflyer.jp / v1 / getmarkets
-    ticker = public.Public().getticker()
+  #  ticker = public.Public().getticker()
     #returns eg
 #    {'volume': 216014.77565499, 'product_code': 'BTC_JPY', 'tick_id': 1730512, 'ltp': 1724530.0,
 #     'timestamp': '2017-12-10T22:39:02.24', 'best_bid': 1723374.0, 'best_ask_size': 16.690179,
@@ -58,7 +175,19 @@ def bitflyer_ticker(pair='BTC_JPY'):
 #     'total_bid_depth': 4277.58274837, 'best_ask': 1724530.0}
 
     api_url = 'https://api.bitflyer.jp/v1/ticker?product_code='+pair
-#    print(ticker)
+    print('bitflyer url {}'.format(api_url))
+
+    data = safe_get(api_url)
+    if data is None:
+        return None
+    ticker = data.text
+
+    print('bitflyer ticker {}'.format(ticker))
+    print(type(ticker))
+
+
+    ticker = ast.literal_eval(data.text)
+
     product = ticker['product_code']
 
     all_vals=[]
@@ -190,72 +319,17 @@ def kraken_ticker_multi(pairs=['EUR_BTC','EUR_LTC','USD_BCH']):
 
         retval={}
         retval['pair']=pair
-        retval['lastprice']=v['c'][0]
-        retval['bid']=v['b'][0]
-        retval['bid_volume']=v['b'][2]
-        retval['ask']=v['a'][0]
-        retval['ask_volume']=v['a'][2]
+        retval['lastprice']=float(v['c'][0])
+        retval['bid']=float(v['b'][0])
+        retval['bid_volume']=float(v['b'][2])
+        retval['ask']=float(v['a'][0])
+        retval['ask_volume']=float(v['a'][2])
         retval['exchange'] = 'kraken'
         retval['timestamp'] = round(time.time(),1)
 
         all_vals.append(retval)
     return all_vals
 
-#    retval['asks']=book['asks']
-#    retval['ticker']=tick
-
-
-
-#    return(book,spread,tick)
-
-def safe_get(url,max_attempts=5):
-    n_attempts=0
-    while(n_attempts<max_attempts):
-        try:
-            data = requests.get(url)
-            return data
-        except:
-            print('exception '+str(sys.exc_info()))
-            n_attempts+=1
-            time.sleep(5)
-    return None
-
-
-def get_api_infos():
-    pass
-
-def currency_conversions():
-    key='831d719df8441bcec7e2c4456f8f22ab'
-    url='http://www.apilayer.net/api/live?access_key=831d719df8441bcec7e2c4456f8f22ab&format=1'
-    success=False
-    n_attempts=0
-    data=safe_get(url)
-    if data is None:
-        return None
- #   print('url {} text {}'.format(data.url,data.text))
-#    print('data for rget:{}'.format(data))
-#    dict=ast.literal_eval(data.text)
-    dict=data.text
-    dict=json.loads(data.text)
-    print('url {} text {}'.format(data.url,dict))
-    usd_ils=dict['quotes']['USDILS']
-    usd_eur=dict['quotes']['USDEUR']
-    usd_btc=dict['quotes']['USDBTC']
-    usd_jpy=dict['quotes']['USDJPY']
-
-    retval = {}
-    retval['exchange']='currencies'
-    retval['ILS_USD']=usd_ils
-    retval['EUR_USD']=usd_eur
-    retval['JPY_USD']=usd_jpy
-    return retval
-
-    # listdata=[[usd_ils,usd_eur,usd_btc,usd_jpy]]
-    # print('listdata {}'.format(listdata))
-    # df=pandas.DataFrame(data=listdata,columns=['USDILS','USDEUR','USDBTC','USDJPY'])
-    # return(df)
-#
-#
 def func_wrap(func):
     return func
 
@@ -265,27 +339,16 @@ def get_all_apis(func_list=[kraken_ticker_multi(),bit2c_ticker_multi(),bitflyer_
     flat_list = [element for sublist in all_results for element in sublist]
     return flat_list
 
-def convert(prices,currency_convert):
-    for tick in prices:
-        print('tick:{}'.format(tick))
-        coin1,coin2 = tick['pair'].split('_')
-        print('usdjpy {} eurusd{} jpyeur {}'.format(currency_convert['JPY_USD'], currency_convert['EUR_USD'], jpy_eur))
-        jpy_eur = currency_convert['JPY_USD'] / currency_convert['EUR_USD']
-        if coin1 == 'JPY': #       ,'USD','ILS']:
-      #      tick['ask_usd']=tick['ask'] / currency_convert['USD_JPY']
-            tick['ask_eur']=tick['ask'] / jpy_eur
-            tick['ask_eur'] = tick['ask'] / jpy_eur
-
-        elif coin1 == 'JPY': #       ,'USD','ILS']:
-            tick['ask_usd']=tick['ask'] / currency_convert['USD_JPY']
-            tick['ask_eur']=tick['ask_usd'] / currency_convert['USD_EUR']
-
 if __name__=="__main__":
+    my_arbitrator = arbitrageur()
+    my_arbitrator.update_info()
 
-    api_prices=get_all_apis()
-    print(json.dumps(api_prices,indent=2))
-    currency_convert = currency_conversions()
-    convert(api_prices,currency_convert)
+    # api_prices = update_info()
+    # api_prices=get_all_apis()
+    # print(json.dumps(api_prices,indent=2))
+    # currency_convert = currency_conversions()
+    # full_prices = convert(api_prices,currency_convert)
+    # print(json.dumps(full_prices,indent=2))
 
     # d=kraken_ticker_multi()
     # print('kraken {}'.format(json.dumps(d,indent=2)))
