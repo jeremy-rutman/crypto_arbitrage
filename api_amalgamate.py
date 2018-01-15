@@ -6,19 +6,19 @@ method2 - crypto1->crypto2
 method3 -  a vs b simultaneous , working on delta(delta) , no sending 
 """
 
-import krakenex
-from pykrakenapi import KrakenAPI
+# import krakenex
+# from pykrakenapi import KrakenAPI
 #pip3 install pykrakenapi
-from bitflyer import public
+#from bitflyer import public
 #pip3 install bitflyer
 
 import time
 import ast
 import sys
 import os
-import pandas
+#import pandas
 import requests, json
-
+from matplotlib import pyplot as plt
 from multiprocessing import Pool
 
 import numpy as np
@@ -45,19 +45,20 @@ class arbitrageur():
         self.update_info()
 
     def update_info(self):
-        currency_update_interval = 3600.0
         if time.time()-self.time_of_last_conversion_check > self.currency_update_interval:
             self.currency_conversions=get_currency_conversions()
-            self.time
+            self.time_of_last_conversion_check = time.time()
         if time.time()-self.time_of_last_api_check > self.api_update_interval:
             self.api_prices = get_all_apis()
             self.api_prices = convert(self.api_prices,self.currency_conversions)
             self.time_of_last_api_check = time.time()
 
-        print('currencies last update {} apis {}'.format(self.time_of_last_conversion_check,self.time_of_last_api_check))
+        print('currencies last update {} '.format(self.time_of_last_conversion_check))
         print(json.dumps(self.currency_conversions,indent=2))
+        print('apis last update {}'.format(self.time_of_last_api_check))
         print(json.dumps(self.api_prices,indent=2))
 
+        chart(self.api_prices)
     #    retval['asks']=book['asks']
     #    retval['ticker']=tick
 
@@ -100,7 +101,7 @@ def get_currency_conversions():
     usd_jpy=dict['quotes']['USDJPY']
 
     retval = {}
-    retval['exchange']='currencies'
+    retval['exchange']='currencies_apilayer.net'
     retval['ILS_USD']=usd_ils
     retval['EUR_USD']=usd_eur
     retval['JPY_USD']=usd_jpy
@@ -124,8 +125,8 @@ def convert(prices,currency_convert):
     ils_eur = currency_convert['ILS_USD'] / currency_convert['EUR_USD']
     eur_jpy = currency_convert['EUR_USD'] / currency_convert['JPY_USD']
     eur_ils = currency_convert['EUR_USD'] / currency_convert['ILS_USD']
-    print('usdjpy {} eurusd{} jpyeur {} ilseur {}'.format(currency_convert['JPY_USD'], currency_convert['EUR_USD'],
-                                                          jpy_eur, ils_eur))
+    print('currencies {}'.format(currency_convert))
+    print('jpyeur {} eurjpy{} ilseur {} eurils {}'.format(jpy_eur,eur_jpy, ils_eur,eur_ils))
     for tick in prices:
         print('tick:{}'.format(tick))
         coin1,coin2 = tick['pair'].split('_')
@@ -151,9 +152,38 @@ def convert(prices,currency_convert):
     return(prices)
 
 #
+def chart(tick_list):
+    symbol_map = {'bitflyer': 'o', 'bit2c': 'x', 'kraken': '*'}
+    for tick in tick_list:
+        pair = tick['pair']
+        exchange = tick['exchange']
+        timestamp=tick['timestamp']
+        coin1,coin2 = pair.split('_')
+        ask_symbol = 'r'+symbol_map[exchange]
+        bid_symbol = 'g'+symbol_map[exchange]
+        plt.subplot(212)
 
 
-def bitflyer_ticker_multi(pairs=['BTC_JPY','BCH_BTC']):  #'ETC_BTC'
+        if coin2=='BTC':
+            plt.subplot(211)
+        elif coin2=='LTC':
+            plt.subplot(212)
+        if coin1=='EUR':
+            plt.plot(timestamp,tick['ask'],ask_symbol,label=exchange+' ask'+coin2)
+            plt.plot(timestamp,tick['bid'],bid_symbol,label=exchange+' bid'+coin2)
+            plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, mode="expand", borderaxespad=0., ncol=3)  # ncol =
+        elif coin1=='ILS' or coin1=='USD' or coin1=='JPY':
+            plt.plot(timestamp,tick['ask_eur'],ask_symbol,label=exchange+' ask'+coin2)
+            plt.plot(timestamp,tick['bid_eur'],bid_symbol,label=exchange+' bid'+coin2)
+            plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, mode="expand", borderaxespad=0.,ncol=3) #ncol =
+
+
+#        elif coin2=='LTC':
+#    plt.legend()
+    plt.show()
+
+
+def bitflyer_ticker_multi(pairs=['JPY_BTC','BTC_BCH','BTC_ETH']):  #'ETC_BTC'
     all_results = []
     p=Pool(len(pairs))
     all_results = p.map(bitflyer_ticker,pairs)
@@ -162,7 +192,7 @@ def bitflyer_ticker_multi(pairs=['BTC_JPY','BCH_BTC']):  #'ETC_BTC'
     #     all_results.append(pair)
 
 
-def bitflyer_ticker(pair='BTC_JPY'):
+def bitflyer_ticker(pair='JPY_BTC'):
 #BTC_JPY,ETH_BTC,BCH_BTC
 
 #for list of markets:
@@ -174,25 +204,30 @@ def bitflyer_ticker(pair='BTC_JPY'):
 #     'total_ask_depth': 2087.30139103, 'volume_by_product': 39867.96588841, 'best_bid_size': 0.40004,
 #     'total_bid_depth': 4277.58274837, 'best_ask': 1724530.0}
 
-    api_url = 'https://api.bitflyer.jp/v1/ticker?product_code='+pair
+    if pair == 'JPY_BTC':
+        api_pair = 'BTC_JPY'
+    elif pair == 'BTC_ETH':
+        api_pair = 'ETH_BTC'
+    elif pair == 'BTC_BCH':
+        api_pair = 'BCH_BTC'
+    else:
+        print('pair {} not recognized'.format(pair))
+        return None
+    api_url = 'https://api.bitflyer.jp/v1/ticker?product_code='+api_pair
     print('bitflyer url {}'.format(api_url))
 
     data = safe_get(api_url)
     if data is None:
         return None
     ticker = data.text
+#    print('bitflyer ticker {}'.format(ticker))
 
-    print('bitflyer ticker {}'.format(ticker))
-    print(type(ticker))
-
-
-    ticker = ast.literal_eval(data.text)
+    ticker = ast.literal_eval(ticker)
 
     product = ticker['product_code']
 
-    all_vals=[]
     retval={}
-    retval['pair']=product
+    retval['pair']=pair
     retval['lastprice']=ticker['ltp']
     retval['bid']=ticker['best_bid']
     retval['bid_volume']=ticker['best_bid_size']
@@ -224,12 +259,8 @@ def bit2c_ticker(pair='ILS_BTC'):
     if pair=='ILS_BTC':
         #url_ticker = 'https://www.bit2c.co.il/Exchanges/BtcNis/Ticker.json'
         url_orderbook = 'https://www.bit2c.co.il/Exchanges/BtcNis/orderbook.json'
-        coin1 = 'ILS'
-        coin2 = 'BTC'
     elif pair=='ILS_LTC':
         url_orderbook = 'https://www.bit2c.co.il/Exchanges/LtcNis/orderbook.json'
-        coin1 = 'ILS'
-        coin2 = 'LTC'
     else:
         print('no pair chosen ')
         return None
@@ -244,22 +275,20 @@ def bit2c_ticker(pair='ILS_BTC'):
     book=ast.literal_eval(data.text)
 #    t=json.dumps(data.text)
     # df3=pandas.DataFrame(data=tickdata,columns=['last','highbuy','lowsell'])
-    bidname='bid_'+coin1+'_'+coin2
-    askname='ask_'+coin1+'_'+coin2
-    all_vals=[]
+
     retval = {}
     retval['pair'] = pair
     retval['bid']=book['bids'][0][0]
     retval['bid_volume']=book['bids'][0][1]
     retval['ask']=book['asks'][0][0]
-    retval['ask_volume'] = book['bids'][0][1]
+    retval['ask_volume'] = book['asks'][0][1]
     retval['exchange'] = 'bit2c'
     retval['timestamp'] = round(time.time(),1)
     return(retval)
 #
 def kraken_ticker_multi(pairs=['EUR_BTC','EUR_LTC','USD_BCH']):
-    api = krakenex.API()
-    k = KrakenAPI(api)
+    # api = krakenex.API()
+    # k = KrakenAPI(api)
 
     normal_to_kraken_names={'EUR_BTC':'XXBTZEUR','EUR_LTC':'XLTCZEUR','USD_BCH':'BCHUSD'}
     kraken_to_normal_names={v:k for k,v in normal_to_kraken_names.items()}
