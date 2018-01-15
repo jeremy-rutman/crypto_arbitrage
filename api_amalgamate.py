@@ -154,6 +154,8 @@ def convert(prices,currency_convert):
 #
 def chart(tick_list):
     symbol_map = {'bitflyer': 'o', 'bit2c': 'x', 'kraken': '*'}
+    ncol_fig1 = 0
+    ncol_fig2 = 0
     for tick in tick_list:
         pair = tick['pair']
         exchange = tick['exchange']
@@ -161,21 +163,34 @@ def chart(tick_list):
         coin1,coin2 = pair.split('_')
         ask_symbol = 'r'+symbol_map[exchange]
         bid_symbol = 'g'+symbol_map[exchange]
-        plt.subplot(212)
+#        plt.subplot(212)
 
 
-        if coin2=='BTC':
-            plt.subplot(211)
-        elif coin2=='LTC':
-            plt.subplot(212)
-        if coin1=='EUR':
-            plt.plot(timestamp,tick['ask'],ask_symbol,label=exchange+' ask'+coin2)
-            plt.plot(timestamp,tick['bid'],bid_symbol,label=exchange+' bid'+coin2)
-            plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, mode="expand", borderaxespad=0., ncol=3)  # ncol =
-        elif coin1=='ILS' or coin1=='USD' or coin1=='JPY':
-            plt.plot(timestamp,tick['ask_eur'],ask_symbol,label=exchange+' ask'+coin2)
-            plt.plot(timestamp,tick['bid_eur'],bid_symbol,label=exchange+' bid'+coin2)
-            plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, mode="expand", borderaxespad=0.,ncol=3) #ncol =
+#first plot crpt vs fiat
+        fiat = False
+        if coin2=='BTC' and coin1 in ['USD','JPY','ILS','EUR']:
+            plt.figure(1)
+            fiat = True
+            ncol_fig1 += 1
+#            plt.subplot(211)
+        elif coin2=='LTC' and coin1 in ['USD','JPY','ILS','EUR']:
+            plt.figure(2)
+            fiat = True
+            ncol_fig2 += 1
+
+        #            plt.subplot(212)
+        if fiat:
+            if coin1=='EUR':
+                plt.plot(timestamp,tick['ask'],ask_symbol,label=exchange+' ask'+coin2)
+                plt.plot(timestamp,tick['bid'],bid_symbol,label=exchange+' bid'+coin2)
+            elif coin1=='ILS' or coin1=='USD' or coin1=='JPY':
+                plt.plot(timestamp,tick['ask_eur'],ask_symbol,label=exchange+' ask'+coin2)
+                plt.plot(timestamp,tick['bid_eur'],bid_symbol,label=exchange+' bid'+coin2)
+
+    plt.figure(1)
+    plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, mode="expand", borderaxespad=0., ncol=ncol_fig1)  # ncol =
+    plt.figure(2)
+    plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, mode="expand", borderaxespad=0., ncol=ncol_fig2)  # ncol =
 
 
 #        elif coin2=='LTC':
@@ -286,11 +301,12 @@ def bit2c_ticker(pair='ILS_BTC'):
     retval['timestamp'] = round(time.time(),1)
     return(retval)
 #
-def kraken_ticker_multi(pairs=['EUR_BTC','EUR_LTC','USD_BCH']):
+def kraken_ticker_multi(pairs=['EUR_BTC','EUR_LTC','BTC_BCH','BTC_ETH']): #eur_bch
+    #asset pairs -  https://api.kraken.com/0/public/AssetPairs
     # api = krakenex.API()
     # k = KrakenAPI(api)
 
-    normal_to_kraken_names={'EUR_BTC':'XXBTZEUR','EUR_LTC':'XLTCZEUR','USD_BCH':'BCHUSD'}
+    normal_to_kraken_names={'EUR_BTC':'XXBTZEUR','EUR_LTC':'XLTCZEUR','EUR_BCH':'BCHEUR','BTC_ETH':'XETHXXBT','BTC_BCH':'XETHXXBT'}
     kraken_to_normal_names={v:k for k,v in normal_to_kraken_names.items()}
  #
  #    ohlc, last = k.get_ohlc_data(pair=pair)
