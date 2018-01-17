@@ -260,7 +260,7 @@ def bitflyer_ticker(pair='JPY_BTC'):
     return(retval)
 
 
-def bit2c_ticker_multi(pairs=['ILS_BTC','ILS_LTC']):
+def bit2c_ticker_multi(pairs=['ILS_BTC','ILS_LTC','ILS_BCH','ILS_BTG']):
     all_retvals=[]
     p=Pool(len(pairs))
     all_results = p.map(bit2c_ticker,pairs)
@@ -276,6 +276,10 @@ def bit2c_ticker(pair='ILS_BTC'):
         url_orderbook = 'https://www.bit2c.co.il/Exchanges/BtcNis/orderbook.json'
     elif pair=='ILS_LTC':
         url_orderbook = 'https://www.bit2c.co.il/Exchanges/LtcNis/orderbook.json'
+    elif pair == 'ILS_BCH':
+        url_orderbook = 'https://www.bit2c.co.il/Exchanges/BchNis/orderbook.json'
+    elif pair == 'ILS_BTG':
+        url_orderbook = 'https://www.bit2c.co.il/Exchanges/BtgNis/orderbook.json'
     else:
         print('no pair chosen ')
         return None
@@ -305,12 +309,25 @@ def bit2c_ticker(pair='ILS_BTC'):
 def generate_extra_pairs(tick_list):
     '''
     given e.g. eur-ltc and eur-btc , generate ltc-btc
-
+    for now generate everything in terms of btc
     :param tick_list:
     :return:
     '''
-    pass
-
+    fiat_currencies=['ILS','EUR','JPY'] #add as necessary
+    fiat_btc_currencies={f:[] for f in fiat_currencies}
+    for tick in tick_list:
+        if tick['pair'] == 'ILS_BTC':
+            fiat_btc_currencies['ILS'].append(tick)
+        elif tick['pair'] == 'EUR_BTC':
+            fiat_btc_currencies['EUR'].append(tick)
+        elif tick['pair'] == 'JPY_BTC':
+            fiat_btc_currencies['JPY'].append(tick)
+    for tick in tick_list:
+        pair = tick['pair']
+        coin1,coin2=pair.split('_')
+        if coin1 in fiat_currencies and coin2 != 'BTC':
+            exchange=tick['exchange']
+            coin1_bid_in_btc=tick['bid']
 
 def kraken_ticker_multi(pairs=['EUR_BTC','EUR_LTC','BTC_BCH','BTC_ETH']): #eur_bch
     #asset pairs -  https://api.kraken.com/0/public/AssetPairs
