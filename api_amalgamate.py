@@ -306,28 +306,57 @@ def bit2c_ticker(pair='ILS_BTC'):
     return(retval)
 #
 
-def generate_extra_pairs(tick_list):
+def generate_extra_pairs(tick_lists):
     '''
     given e.g. eur-ltc and eur-btc , generate ltc-btc
     for now generate everything in terms of btc
-    :param tick_list:
+    :param tick_lists: list of ticks , one per exchange
     :return:
     '''
     fiat_currencies=['ILS','EUR','JPY'] #add as necessary
     fiat_btc_currencies={f:[] for f in fiat_currencies}
-    for tick in tick_list:
-        if tick['pair'] == 'ILS_BTC':
-            fiat_btc_currencies['ILS'].append(tick)
-        elif tick['pair'] == 'EUR_BTC':
-            fiat_btc_currencies['EUR'].append(tick)
-        elif tick['pair'] == 'JPY_BTC':
-            fiat_btc_currencies['JPY'].append(tick)
-    for tick in tick_list:
-        pair = tick['pair']
-        coin1,coin2=pair.split('_')
-        if coin1 in fiat_currencies and coin2 != 'BTC':
-            exchange=tick['exchange']
-            coin1_bid_in_btc=tick['bid']
+    for tick_list in tick_lists:
+        # if tick['pair'] == 'ILS_BTC':
+        #     fiat_btc_currencies['ILS'].append(tick)
+        # elif tick['pair'] == 'EUR_BTC':
+        #     fiat_btc_currencies['EUR'].append(tick)
+        # elif tick['pair'] == 'JPY_BTC':
+        #     fiat_btc_currencies['JPY'].append(tick)
+        got_btc = False
+        for tick in tick_list:    #make btc-other_crypto ticks
+            pair = tick['pair']
+            coin1,coin2=pair.split('_')
+            if coin1 in fiat_currencies and coin2 == 'BTC':
+                exchange_coin=coin1
+                btc_pair = pair
+                btc_tick = tick
+                # exchange_coin_btc_bid=tick['bid']
+                # exchange_coin_btc_ask=tick['ask']
+                # exchange_coin_btc_bidvol=tick['bid_volume']
+                # exchange_coin_btc_askvol=tick['bid_volume']
+                got_btc=True
+        if not got_btc:
+            print('did not find any btc for exchange ')
+            return None
+
+        for tick in tick_list:    #make btc-other_crypto ticks
+            pair = tick['pair']
+            coin1,coin2=pair.split('_')
+            if coin1 in fiat_currencies and coin2 != 'BTC':
+                exchange=tick['exchange']
+                if coin1!=exchange_coin:
+                    print('pair {} not comparable to pair {} on exchange {}'.format(pair,btc_pair,exchange))
+                    continue
+                new_tick={}
+                new_tick['pair'] = #pair
+                new_tick['bid'] = btc_tick['bid']/tick['bid']
+                new_tick['bid_volume'] =
+                new_tick['ask'] =
+                new_tick['ask_volume'] =
+                new_tick['exchange'] = exchange
+
+
+
 
 def kraken_ticker_multi(pairs=['EUR_BTC','EUR_LTC','BTC_BCH','BTC_ETH']): #eur_bch
     #asset pairs -  https://api.kraken.com/0/public/AssetPairs
@@ -409,8 +438,9 @@ def func_wrap(func):
 def get_all_apis(func_list=[kraken_ticker_multi(),bit2c_ticker_multi(),bitflyer_ticker_multi()]):
     p=Pool(len(func_list))
     all_results = p.map(func_wrap,func_list)
-    flat_list = [element for sublist in all_results for element in sublist]
-    return flat_list
+    return all_results
+    # flat_list = [element for sublist in all_results for element in sublist]
+    # return flat_list
 
 if __name__=="__main__":
     my_arbitrator = arbitrageur()
