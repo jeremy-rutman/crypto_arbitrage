@@ -36,6 +36,11 @@ from random import choice
 # from selenium.webdriver.support.ui import WebDriverWait
 # from selenium.webdriver.support import expected_conditions as EC
 
+
+crypto_list = ['BCH', 'ETH', 'BTC', 'BTG','LTC']
+fiat_list = ['USD', 'JPY', 'ILS', 'EUR']
+
+
 class arbitrageur():
     def __init__(self):
         self.time_of_last_conversion_check=0 #seconds
@@ -50,7 +55,12 @@ class arbitrageur():
             self.time_of_last_conversion_check = time.time()
         if time.time()-self.time_of_last_api_check > self.api_update_interval:
             self.api_prices = get_all_apis()
+            how_many(self.api_prices)
+            self.api_prices=generate_extra_pairs(self.api_prices)
+            how_many(self.api_prices)
+
             self.api_prices = convert(self.api_prices,self.currency_conversions)
+            how_many(self.api_prices)
             self.time_of_last_api_check = time.time()
 
         print('currencies last update {} '.format(self.time_of_last_conversion_check))
@@ -76,6 +86,9 @@ def safe_get(url,max_attempts=5):
             time.sleep(5)
     return None
 
+def how_many(ticklist_list):
+    for ticklist in ticklist_list:
+        print('exchange {} has {} prices'.format(ticklist[0]['exchange'],len(ticklist)))
 
 def get_currency_conversions():
     '''
@@ -114,7 +127,7 @@ def get_currency_conversions():
 #
 
 
-def convert(prices,currency_convert):
+def convert(ticklist_list,currency_convert):
     '''
     add euro prices to all fiat currencies that arent already euro
     :param prices:
@@ -127,36 +140,43 @@ def convert(prices,currency_convert):
     eur_ils = currency_convert['EUR_USD'] / currency_convert['ILS_USD']
     print('currencies {}'.format(currency_convert))
     print('jpyeur {} eurjpy{} ilseur {} eurils {}'.format(jpy_eur,eur_jpy, ils_eur,eur_ils))
-    for tick in prices:
-        print('tick:{}'.format(tick))
-        coin1,coin2 = tick['pair'].split('_')
-        if coin1 == 'JPY': #       ,'USD','ILS']:
-            tick['ask_eur']=tick['ask'] * eur_jpy
-            tick['bid_eur'] = tick['bid'] * eur_jpy
-        elif coin1 == 'USD': #       ,'USD','ILS']:
-            tick['ask_eur']=tick['ask'] * currency_convert['EUR_USD']
-            tick['bid_eur']=tick['bid'] * currency_convert['EUR_USD']
-        elif coin1 == 'ILS': #       ,'USD','ILS']:
-            tick['ask_eur']=tick['ask'] * eur_ils
-            tick['bid_eur']=tick['bid'] * eur_ils
+    for ticklist in ticklist_list:
+        for tick in ticklist:
+            print('tick:{}'.format(tick))
+            coin1,coin2 = tick['pair'].split('_')
+            if coin1 == 'JPY': #       ,'USD','ILS']:
+                tick['ask_eur']=tick['ask'] * eur_jpy
+                tick['bid_eur'] = tick['bid'] * eur_jpy
+            elif coin1 == 'USD': #       ,'USD','ILS']:
+                tick['ask_eur']=tick['ask'] * currency_convert['EUR_USD']
+                tick['bid_eur']=tick['bid'] * currency_convert['EUR_USD']
+            elif coin1 == 'ILS': #       ,'USD','ILS']:
+                tick['ask_eur']=tick['ask'] * eur_ils
+                tick['bid_eur']=tick['bid'] * eur_ils
 
-        if coin2 == 'JPY': #       ,'USD','ILS']:
-            tick['ask_eur']=tick['ask'] / eur_jpy
-            tick['bid_eur'] = tick['bid'] / eur_jpy
-        elif coin2 == 'USD': #       ,'USD','ILS']:
-            tick['ask_eur']=tick['ask'] / currency_convert['EUR_USD']
-            tick['bid_eur']=tick['bid'] / currency_convert['EUR_USD']
-        elif coin2 == 'ILS': #       ,'USD','ILS']:
-            tick['ask_eur']=tick['ask'] / eur_ils
-            tick['bid_eur']=tick['bid'] / eur_ils
-    return(prices)
+            if coin2 == 'JPY': #       ,'USD','ILS']:
+                tick['ask_eur']=tick['ask'] / eur_jpy
+                tick['bid_eur'] = tick['bid'] / eur_jpy
+            elif coin2 == 'USD': #       ,'USD','ILS']:
+                tick['ask_eur']=tick['ask'] / currency_convert['EUR_USD']
+                tick['bid_eur']=tick['bid'] / currency_convert['EUR_USD']
+            elif coin2 == 'ILS': #       ,'USD','ILS']:
+                tick['ask_eur']=tick['ask'] / eur_ils
+                tick['bid_eur']=tick['bid'] / eur_ils
+    return(ticklist_list)
 
 #
 def chart(tick_list):
+    flat_list = [element for sublist in tick_list for element in sublist]
+    # return flat_list
     symbol_map = {'bitflyer': 'o', 'bit2c': 'x', 'kraken': '*'}
     ncol_fig1 = 0
     ncol_fig2 = 0
-    for tick in tick_list:
+    ncol_fig3 = 0
+    ncol_fig4 = 0
+    ncol_fig5 = 0
+    ncol_fig6 = 0
+    for tick in flat_list:
         pair = tick['pair']
         exchange = tick['exchange']
         timestamp=tick['timestamp']
@@ -168,31 +188,52 @@ def chart(tick_list):
 
 #first plot crpt vs fiat
         fiat = False
-        if coin2=='BTC' and coin1 in ['USD','JPY','ILS','EUR']:
+        if coin2=='BTC' and coin1 in fiat_list:
             plt.figure(1)
             fiat = True
             ncol_fig1 += 1
 #            plt.subplot(211)
-        elif coin2=='LTC' and coin1 in ['USD','JPY','ILS','EUR']:
+        elif coin2=='LTC' and coin1 in fiat_list:
             plt.figure(2)
             fiat = True
             ncol_fig2 += 1
+        elif coin2 == 'BTC' and coin1 == 'LTC':
+            plt.figure(3)
+            fiat=False
+            ncol_fig3 += 1
 
+        elif coin2 == 'BTC' and coin1 == 'BCH':
+            plt.figure(4)
+            fiat=False
+            ncol_fig4 += 1
+        elif coin2 == 'BTC' and coin1 == 'BTG':
+            plt.figure(5)
+            fiat=False
+            ncol_fig5 += 1
+        elif coin2 == 'BTC' and coin1 == 'ETH':
+            plt.figure(6)
+            fiat=False
+            ncol_fig6 += 1
+        #            plt.subplot(211)
         #            plt.subplot(212)
         if fiat:
             if coin1=='EUR':
-                plt.plot(timestamp,tick['ask'],ask_symbol,label=exchange+' ask'+coin2)
-                plt.plot(timestamp,tick['bid'],bid_symbol,label=exchange+' bid'+coin2)
-            elif coin1=='ILS' or coin1=='USD' or coin1=='JPY':
-                plt.plot(timestamp,tick['ask_eur'],ask_symbol,label=exchange+' ask'+coin2)
-                plt.plot(timestamp,tick['bid_eur'],bid_symbol,label=exchange+' bid'+coin2)
+                plt.plot(timestamp,tick['ask'],ask_symbol,label=exchange+' ask'+pair)
+                plt.plot(timestamp,tick['bid'],bid_symbol,label=exchange+' bid'+pair)
+            elif coin1 in fiat_list:
+                plt.plot(timestamp,tick['ask_eur'],ask_symbol,label=exchange+' ask'+pair)
+                plt.plot(timestamp,tick['bid_eur'],bid_symbol,label=exchange+' bid'+pair)
+        else:
+            plt.plot(timestamp,tick['ask'],ask_symbol,label=exchange+' ask'+pair)
+            plt.plot(timestamp,tick['bid'],bid_symbol,label=exchange+' bid'+pair)
 
-    plt.figure(1)
-    plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, mode="expand", borderaxespad=0., ncol=ncol_fig1)  # ncol =
-    plt.figure(2)
-    plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, mode="expand", borderaxespad=0., ncol=ncol_fig2)  # ncol =
-
-
+    fignames = ['btc fiat ','ltc fiat','ltc-btc','bch-btc','btg-btc','eth-btc']
+    for i,ncol in enumerate([ncol_fig1,ncol_fig2,ncol_fig3,ncol_fig4,ncol_fig5,ncol_fig6]):
+        print('{} columns for fig {}'.format(ncol, i))
+        if ncol>0:
+            plt.figure(i+1)
+            plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, mode="expand", borderaxespad=0., ncol=ncol)
+            plt.title(fignames[i])
 #        elif coin2=='LTC':
 #    plt.legend()
     plt.show()
@@ -225,6 +266,8 @@ def bitflyer_ticker(pair='JPY_BTC'):
         api_pair = 'ETH_BTC'
     elif pair == 'BTC_BCH':
         api_pair = 'BCH_BTC'
+    elif pair == 'JPY_LTC':
+        api_pair = 'LTC_JPY'
     else:
         print('pair {} not recognized'.format(pair))
         return None
@@ -322,40 +365,58 @@ def generate_extra_pairs(tick_lists):
         #     fiat_btc_currencies['EUR'].append(tick)
         # elif tick['pair'] == 'JPY_BTC':
         #     fiat_btc_currencies['JPY'].append(tick)
+        exchange=tick_list[0]['exchange']
+        pairs=[tick['pair'] for tick in tick_list]
+        print('looking for extra pairs in exchange {} which has pairs {}'.format(exchange,pairs))
         got_btc = False
-        for tick in tick_list:    #make btc-other_crypto ticks
+        for tick in tick_list:    #make btc-other_crypto ticks #1. find btc tick
+
             pair = tick['pair']
             coin1,coin2=pair.split('_')
             if coin1 in fiat_currencies and coin2 == 'BTC':
                 exchange_coin=coin1
                 btc_pair = pair
                 btc_tick = tick
+                got_btc=True
+                print(tick['exchange'])
                 # exchange_coin_btc_bid=tick['bid']
                 # exchange_coin_btc_ask=tick['ask']
                 # exchange_coin_btc_bidvol=tick['bid_volume']
                 # exchange_coin_btc_askvol=tick['bid_volume']
-                got_btc=True
         if not got_btc:
-            print('did not find any btc for exchange ')
-            return None
+            print('did not find any btc for exchange {}'.format(exchange))
+            continue
 
-        for tick in tick_list:    #make btc-other_crypto ticks
+        for tick in tick_list:    #make btc-other_crypto ticks  2.convert fiat-nonbtc_crypto to nonbtc_crypto-btc
             pair = tick['pair']
             coin1,coin2=pair.split('_')
             if coin1 in fiat_currencies and coin2 != 'BTC':
-                exchange=tick['exchange']
                 if coin1!=exchange_coin:
                     print('pair {} not comparable to pair {} on exchange {}'.format(pair,btc_pair,exchange))
                     continue
                 new_tick={}
-                new_tick['pair'] = #pair
-                new_tick['bid'] = btc_tick['bid']/tick['bid']
-                new_tick['bid_volume'] =
-                new_tick['ask'] =
-                new_tick['ask_volume'] =
+                new_tick['pair'] = coin2+'_BTC'
+                new_tick['bid'] = btc_tick['bid']/tick['ask']   #need to pay the ltc ask and the btc bid
+                new_tick['ask'] = btc_tick['ask']/tick['bid']
                 new_tick['exchange'] = exchange
-
-
+                new_tick['timestamp']=btc_tick['timestamp']
+                new_tick['n_transactions']=2
+                #volume is determined by min between the btc and non-btc crypto vol, i compare them in terms of fiat
+                ask_min_vol_fiat = min(tick['ask']*tick['ask_volume'],btc_tick['ask']*btc_tick['ask_volume'])
+                ask_vol_btc=ask_min_vol_fiat/btc_tick['ask']
+                new_tick['ask_volume'] = ask_vol_btc
+                bid_min_vol_fiat = min(tick['bid'] * tick['bid_volume'],btc_tick['bid']*btc_tick['bid_volume'])
+                bid_vol_btc=bid_min_vol_fiat/btc_tick['bid']
+                new_tick['bid_volume'] = bid_vol_btc
+             #   print('ask min vol fiat {} bid min vol fiat {}'.format(ask_min_vol_fiat,bid_min_vol_fiat))
+                print('new tick:\n')
+                print(json.dumps(new_tick,indent=2))
+                print('current tick:\n')
+                print(json.dumps(tick,indent=2))
+                print('btc tick:\n')
+                print(json.dumps(btc_tick,indent=2))
+                tick_list.append(new_tick)
+    return(tick_lists)
 
 
 def kraken_ticker_multi(pairs=['EUR_BTC','EUR_LTC','BTC_BCH','BTC_ETH']): #eur_bch
@@ -436,11 +497,12 @@ def func_wrap(func):
     return func
 
 def get_all_apis(func_list=[kraken_ticker_multi(),bit2c_ticker_multi(),bitflyer_ticker_multi()]):
+    # flat_list = [element for sublist in all_results for element in sublist]
+    # return flat_list
     p=Pool(len(func_list))
     all_results = p.map(func_wrap,func_list)
     return all_results
-    # flat_list = [element for sublist in all_results for element in sublist]
-    # return flat_list
+
 
 if __name__=="__main__":
     my_arbitrator = arbitrageur()
