@@ -419,7 +419,7 @@ def generate_extra_pairs(tick_lists):
     return(tick_lists)
 
 
-def kraken_ticker_multi(pairs=['EUR_BTC','EUR_LTC','BTC_BCH','BTC_ETH']): #eur_bch
+def kraken_ticker_multi(pairs=['EUR_BTC','EUR_LTC','BTC_BCH','BTC_ETH','EUR_BCH']): #eur_btg
     #asset pairs -  https://api.kraken.com/0/public/AssetPairs
     # api = krakenex.API()
     # k = KrakenAPI(api)
@@ -573,3 +573,67 @@ if __name__=="__main__":
         #     fp.close()
         print('wrote {}'.format(fname))
         time.sleep(sleeptime)
+
+
+
+
+"""  kraken oairs
+BCHEUR	{…}
+BCHUSD	{…}
+BCHXBT	{…}
+DASHEUR	{…}
+DASHUSD	{…}
+DASHXBT	{…}
+EOSETH	{…}
+EOSXBT	{…}
+GNOETH	{…}
+GNOXBT	{…}
+USDTZUSD	{…}
+XETCXETH	{…}
+XETCXXBT	{…}
+XETCZEUR	{…}
+XETCZUSD	{…}
+XETHXXBT	{…}
+XETHXXBT.d	{…}
+XETHZCAD	{…}
+XETHZCAD.d	{…}
+XETHZEUR	{…}
+XETHZEUR.d	{…}
+XETHZGBP	{…}
+XETHZGBP.d	{…}
+XETHZJPY	{…}
+XETHZJPY.d	{…}
+XETHZUSD	{…}
+XETHZUSD.d	{…}
+XICNXETH	{…}
+XICNXXBT	{…}
+XLTCXXBT	{…}
+XLTCZEUR	{…}
+XLTCZUSD	{…}
+XMLNXETH	{…}
+XMLNXXBT	{…}
+XREPXETH	{…}
+XREPXXBT	{…}
+XREPZEUR	{…}
+XXBTZCAD	{…}
+XXBTZCAD.d	{…}
+XXBTZEUR	{…}
+XXBTZEUR.d	{…}
+XXBTZGBP	{…}
+XXBTZGBP.d	{…}
+XXBTZJPY	{…}
+XXBTZJPY.d	{…}
+XXBTZUSD	{…}
+XXBTZUSD.d	{…}
+XXDGXXBT	{…}
+XXLMXXBT	{…}
+XXMRXXBT	{…}
+XXMRZEUR	{…}
+XXMRZUSD	{…}
+XXRPXXBT	{…}
+XXRPZEUR	{…}
+XXRPZUSD	{…}
+XZECXXBT	{…}
+XZECZEUR	{…}
+XZECZUSD	{…}
+"""
