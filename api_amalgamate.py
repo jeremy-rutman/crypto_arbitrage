@@ -6,6 +6,8 @@ method2 - crypto1->crypto2
 method3 -  a vs b simultaneous , working on delta(delta) , no sending 
 https://cryptowat.ch/docs/api#markets
 
+binance
+https://www.binance.com/restapipub.html
 # whoever wants to bid ltc for btc
 # needs to first  get ltc , by paying the ask of e..g euro-ltc
 # so  the bid ltc-btc_bid = euro-btc_bid / euro-ltc_ask
