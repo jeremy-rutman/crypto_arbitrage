@@ -4,6 +4,7 @@ __author__ = 'jeremy'
 method1 - crpto->fiat 
 method2 - crypto1->crypto2
 method3 -  a vs b simultaneous , working on delta(delta) , no sending 
+https://cryptowat.ch/docs/api#markets
 """
 
 # import krakenex
