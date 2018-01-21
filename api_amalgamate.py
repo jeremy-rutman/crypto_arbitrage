@@ -5,6 +5,10 @@ method1 - crpto->fiat
 method2 - crypto1->crypto2
 method3 -  a vs b simultaneous , working on delta(delta) , no sending 
 https://cryptowat.ch/docs/api#markets
+
+# whoever wants to bid ltc for btc
+# needs to first  get ltc , by paying the ask of e..g euro-ltc
+# so  the bid ltc-btc_bid = euro-btc_bid / euro-ltc_ask
 """
 
 # import krakenex
@@ -397,6 +401,9 @@ def generate_extra_pairs(tick_lists):
                     continue
                 new_tick={}
                 new_tick['pair'] = coin2+'_BTC'
+                # whoever wants to bid ltc for btc
+                # needs to first  get ltc , by paying the ask of e..g euro-ltc
+                # so  the bid ltc-btc_bid = euro-btc_bid / euro-ltc_ask
                 new_tick['bid'] = btc_tick['bid']/tick['ask']   #need to pay the ltc ask and the btc bid
                 new_tick['ask'] = btc_tick['ask']/tick['bid']
                 new_tick['exchange'] = exchange
