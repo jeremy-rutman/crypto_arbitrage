@@ -13,6 +13,8 @@ https://www.binance.com/restapipub.html
 # so  the bid ltc-btc_bid = euro-btc_bid / euro-ltc_ask
 
 #binance https://github.com/binance-exchange/binance-official-api-docs
+cobinhood
+
 """
 
 # import krakenex
@@ -73,9 +75,9 @@ class arbitrageur():
             self.time_of_last_api_check = time.time()
 
         print('currencies last update {} '.format(self.time_of_last_conversion_check))
-        print(json.dumps(self.currency_conversions,indent=2))
+   #     print(json.dumps(self.currency_conversions,indent=2))
         print('apis last update {}'.format(self.time_of_last_api_check))
-        print(json.dumps(self.api_prices,indent=2))
+    #    print(json.dumps(self.api_prices,indent=2))
         chart_all(self.api_prices)
         identify_arbitrages(self.api_prices)
     #    retval['asks']=book['asks']
@@ -175,7 +177,7 @@ def convert(ticklist_list,currency_convert):
     return(ticklist_list)
 
 #
-def chart_all(ticklist,pairs=['EUR_BTC','LTC_BTC','ETH_BTC','BTG_BTC','BCH_BTC']):
+def chart_all(ticklist,pairs=['EUR_BTC','LTC_BTC','ETH_BTC','BTC_ETH','BTG_BTC','BCH_BTC']):
     for i,pair in enumerate(pairs):
         chart(ticklist,pair_to_show=pair,fig_num=i+1)
 
@@ -247,14 +249,19 @@ def identify_arbitrages(tick_list_list):
                         spread1=bid1-ask2
                         spread2=bid2-ask1
                         if spread1>0 :
-                            print("{} {} spread {} {} %".format(pair1, pair2, spread1, spread1 / bid1))
+                            print("{} {} spread {} {} % vol {} {}".format(pair1, pair2, spread1, spread1 / bid1,tick1['bid_volume'],tick2['ask_volume']))
                             if coin1_1 not in fiat_list:
-                                print("OH MY @#$@#$ GOD")
+                                print("OH MY @#$@#$ GOD \a")
+                            write_arb(pair1, pair2, spread1,spread1/bid1, tick1['bid_volume'], tick2['ask_volume'],exchange1,exchange2)
                         if spread2>0 :
                             if coin1_1 not in fiat_list:
-                                print("OH MY @#$@#$ GOD")
-                            print("{} {} spread {} {} %".format(pair1,pair2,spread2,spread2/bid2))
+                                print("OH MY @#$@#$ GOD \a")
+                            write_arb(pair1, pair2, spread2, spread2/bid2,tick1['ask_volume'], tick2['bid_volume'], exchange1,exchange2)
+                            print("{} {} spread {} {} % vol {} {}".format(pair1,pair2,spread2,spread2/bid2,tick1['ask_volume'],tick2['bid_volume']))
 
+def write_arb(pair1,pair2,spread,percent,v1,v2,exch1,exch2):
+    with open('arb_opps.txt','a') as fp:
+        fp.write('{} {} {} {} spread {} ({} %) v1 {} v2 {}\n'.format(exch1,exch2,pair1,pair2,spread,percent,v1,v2))
 
 
 def bitflyer_ticker_multi(pairs=['JPY_BTC','BTC_BCH','BTC_ETH']):  #'ETC_BTC'
