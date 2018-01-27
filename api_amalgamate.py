@@ -11,6 +11,8 @@ https://www.binance.com/restapipub.html
 # whoever wants to bid ltc for btc
 # needs to first  get ltc , by paying the ask of e..g euro-ltc
 # so  the bid ltc-btc_bid = euro-btc_bid / euro-ltc_ask
+
+#binance https://github.com/binance-exchange/binance-official-api-docs
 """
 
 # import krakenex
@@ -75,7 +77,7 @@ class arbitrageur():
         print('apis last update {}'.format(self.time_of_last_api_check))
         print(json.dumps(self.api_prices,indent=2))
 
-        chart(self.api_prices)
+        chart_all(self.api_prices)
     #    retval['asks']=book['asks']
     #    retval['ticker']=tick
 
@@ -173,77 +175,48 @@ def convert(ticklist_list,currency_convert):
     return(ticklist_list)
 
 #
-def chart(tick_list):
+def chart_all(ticklist,pairs=['EUR_BTC','LTC_BTC','ETH_BTC','BTG_BTC','BCH_BTC']):
+    for i,pair in enumerate(pairs):
+        chart(ticklist,pair_to_show=pair,fig_num=i+1)
+
+
+def chart(tick_list,pair_to_show='EUR_BTC',fig_num=1):
     flat_list = [element for sublist in tick_list for element in sublist]
     # return flat_list
     symbol_map = {'bitflyer': 'o', 'bit2c': 'x', 'kraken': '*'}
-    ncol_fig1 = 0
-    ncol_fig2 = 0
-    ncol_fig3 = 0
-    ncol_fig4 = 0
-    ncol_fig5 = 0
-    ncol_fig6 = 0
+    showcoin1, showcoin2 = pair_to_show.split('_')
+    ncol=0
+    plt.figure(fig_num)
+    plt.ion()
     for tick in flat_list:
         pair = tick['pair']
-        exchange = tick['exchange']
-        timestamp=tick['timestamp']
-        coin1,coin2 = pair.split('_')
-        ask_symbol = 'r'+symbol_map[exchange]
-        bid_symbol = 'g'+symbol_map[exchange]
-#        plt.subplot(212)
-
-
-#first plot crpt vs fiat
-        fiat = False
-        if coin2=='BTC' and coin1 in fiat_list:
-            plt.figure(1)
-            fiat = True
-            ncol_fig1 += 1
-#            plt.subplot(211)
-        elif coin2=='LTC' and coin1 in fiat_list:
-            plt.figure(2)
-            fiat = True
-            ncol_fig2 += 1
-        elif coin2 == 'BTC' and coin1 == 'LTC':
-            plt.figure(3)
-            fiat=False
-            ncol_fig3 += 1
-
-        elif coin2 == 'BTC' and coin1 == 'BCH':
-            plt.figure(4)
-            fiat=False
-            ncol_fig4 += 1
-        elif coin2 == 'BTC' and coin1 == 'BTG':
-            plt.figure(5)
-            fiat=False
-            ncol_fig5 += 1
-        elif coin2 == 'BTC' and coin1 == 'ETH':
-            plt.figure(6)
-            fiat=False
-            ncol_fig6 += 1
-        #            plt.subplot(211)
-        #            plt.subplot(212)
-        if fiat:
-            if coin1=='EUR':
-                plt.plot(timestamp,tick['ask'],ask_symbol,label=exchange+' ask'+pair)
-                plt.plot(timestamp,tick['bid'],bid_symbol,label=exchange+' bid'+pair)
-            elif coin1 in fiat_list:
-                plt.plot(timestamp,tick['ask_eur'],ask_symbol,label=exchange+' ask'+pair)
-                plt.plot(timestamp,tick['bid_eur'],bid_symbol,label=exchange+' bid'+pair)
-        else:
-            plt.plot(timestamp,tick['ask'],ask_symbol,label=exchange+' ask'+pair)
-            plt.plot(timestamp,tick['bid'],bid_symbol,label=exchange+' bid'+pair)
-
-    fignames = ['btc fiat ','ltc fiat','ltc-btc','bch-btc','btg-btc','eth-btc']
-    for i,ncol in enumerate([ncol_fig1,ncol_fig2,ncol_fig3,ncol_fig4,ncol_fig5,ncol_fig6]):
-        print('{} columns for fig {}'.format(ncol, i))
-        if ncol>0:
-            plt.figure(i+1)
-            plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, mode="expand", borderaxespad=0., ncol=ncol)
-            plt.title(fignames[i])
-#        elif coin2=='LTC':
-#    plt.legend()
+        coin1, coin2 = pair.split('_')
+        if (pair_to_show==pair) or (coin1 in fiat_list and coin2=='BTC' and pair_to_show=='EUR_BTC'):  #fiat-crypto pairs should all have extra ask_eur and bid_eur elements
+            print('plotting {} vs {} on fig {}'.format(pair_to_show,pair,fig_num))
+            exchange = tick['exchange']
+            timestamp=tick['timestamp']
+            if not exchange in symbol_map:
+                print('no symbol for {}'.format(exchange))
+                symbol_map[exchange]='.'
+            ask_symbol = 'r'+symbol_map[exchange]
+            bid_symbol = 'g'+symbol_map[exchange]
+    #        plt.subplot(212)
+    #first plot crpt vs fiat
+            ask_to_plot = tick['ask']
+            bid_to_plot = tick['bid']
+            if coin1 in fiat_list and coin1!='EUR':
+                ask_to_plot = tick['ask_eur']
+                bid_to_plot = tick['bid_eur']
+            plt.plot(timestamp,ask_to_plot,ask_symbol,label=exchange+' ask'+pair)
+            plt.plot(timestamp,bid_to_plot,bid_symbol,label=exchange+' bid'+pair)
+            ncol=ncol+1
+    if ncol==0:
+        return
+    plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, mode="expand", borderaxespad=0., ncol=ncol)
+    plt.title(pair_to_show)
+    plt.grid(True)
     plt.show()
+    plt.pause(0.001)
 
 
 def bitflyer_ticker_multi(pairs=['JPY_BTC','BTC_BCH','BTC_ETH']):  #'ETC_BTC'
@@ -376,8 +349,7 @@ def generate_extra_pairs(tick_lists):
         pairs=[tick['pair'] for tick in tick_list]
         print('looking for extra pairs in exchange {} which has pairs {}'.format(exchange,pairs))
         got_btc = False
-        for tick in tick_list:    #make btc-other_crypto ticks #1. find btc tick
-
+        for tick in tick_list:    #make btc-other_crypto ticks - 1. find btc tick
             pair = tick['pair']
             coin1,coin2=pair.split('_')
             if coin1 in fiat_currencies and coin2 == 'BTC':
@@ -385,7 +357,7 @@ def generate_extra_pairs(tick_lists):
                 btc_pair = pair
                 btc_tick = tick
                 got_btc=True
-                print(tick['exchange'])
+                print('btc exchange {} coin {} '.format(tick['exchange'],exchange_coin))
                 # exchange_coin_btc_bid=tick['bid']
                 # exchange_coin_btc_ask=tick['ask']
                 # exchange_coin_btc_bidvol=tick['bid_volume']
@@ -516,7 +488,11 @@ def get_all_apis(func_list=[kraken_ticker_multi(),bit2c_ticker_multi(),bitflyer_
 
 if __name__=="__main__":
     my_arbitrator = arbitrageur()
-    my_arbitrator.update_info()
+    last_time=time.time()
+    while(1):
+        if time.time()-last_time>10:
+            my_arbitrator.update_info()
+            last_time=time.time()
 
     # api_prices = update_info()
     # api_prices=get_all_apis()
