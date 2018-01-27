@@ -76,8 +76,8 @@ class arbitrageur():
         print(json.dumps(self.currency_conversions,indent=2))
         print('apis last update {}'.format(self.time_of_last_api_check))
         print(json.dumps(self.api_prices,indent=2))
-
         chart_all(self.api_prices)
+        identify_arbitrages(self.api_prices)
     #    retval['asks']=book['asks']
     #    retval['ticker']=tick
 
@@ -218,6 +218,44 @@ def chart(tick_list,pair_to_show='EUR_BTC',fig_num=1):
     plt.show()
     plt.pause(0.001)
 
+def identify_arbitrages(tick_list_list):
+    for i,tick_list1 in enumerate(tick_list_list[:-1]):
+        for tick1 in tick_list1:
+            for j,tick_list2 in enumerate(tick_list_list[i+1:]):
+                for tick2 in  tick_list2:
+
+                    pair1=tick1['pair']
+                    pair2=tick2['pair']
+                    coin1_1,coin1_2=pair1.split('_')
+                    coin2_1,coin2_2=pair2.split('_')
+                    if pair1==pair2 or coin1_1 in fiat_list and coin1_2 == 'BTC' and coin2_1 in fiat_list and coin2_2=='BTC': #same pair on one fiat and one btc
+                        exchange1=tick1['exchange']
+                        exchange2=tick2['exchange']
+                        print('looking for arbitrage in {} {} vs {} {}'.format(exchange1,exchange2,pair1,pair2))
+                        if coin1_1 in fiat_list and coin1_1 != 'EUR':
+                            bid1=tick1['bid_eur']
+                            ask1=tick1['ask_eur']
+                        else:
+                            bid1=tick1['bid']
+                            ask1 = tick1['ask']
+                        if coin2_1 in fiat_list and coin2_1 != 'EUR':
+                            bid2 = tick2['bid_eur']
+                            ask2 = tick2['bid_eur']
+                        else:
+                            bid2 = tick2['bid']
+                            ask2 = tick2['ask']
+                        spread1=bid1-ask2
+                        spread2=bid2-ask1
+                        if spread1>0 :
+                            print("{} {} spread {} {} %".format(pair1, pair2, spread1, spread1 / bid1))
+                            if coin1_1 not in fiat_list:
+                                print("OH MY @#$@#$ GOD")
+                        if spread2>0 :
+                            if coin1_1 not in fiat_list:
+                                print("OH MY @#$@#$ GOD")
+                            print("{} {} spread {} {} %".format(pair1,pair2,spread2,spread2/bid2))
+
+
 
 def bitflyer_ticker_multi(pairs=['JPY_BTC','BTC_BCH','BTC_ETH']):  #'ETC_BTC'
     all_results = []
@@ -347,7 +385,7 @@ def generate_extra_pairs(tick_lists):
         #     fiat_btc_currencies['JPY'].append(tick)
         exchange=tick_list[0]['exchange']
         pairs=[tick['pair'] for tick in tick_list]
-        print('looking for extra pairs in exchange {} which has pairs {}'.format(exchange,pairs))
+#        print('looking for extra pairs in exchange {} which has pairs {}'.format(exchange,pairs))
         got_btc = False
         for tick in tick_list:    #make btc-other_crypto ticks - 1. find btc tick
             pair = tick['pair']
@@ -357,7 +395,7 @@ def generate_extra_pairs(tick_lists):
                 btc_pair = pair
                 btc_tick = tick
                 got_btc=True
-                print('btc exchange {} coin {} '.format(tick['exchange'],exchange_coin))
+ #               print('btc exchange {} coin {} '.format(tick['exchange'],exchange_coin))
                 # exchange_coin_btc_bid=tick['bid']
                 # exchange_coin_btc_ask=tick['ask']
                 # exchange_coin_btc_bidvol=tick['bid_volume']
@@ -391,12 +429,12 @@ def generate_extra_pairs(tick_lists):
                 bid_vol_btc=bid_min_vol_fiat/btc_tick['bid']
                 new_tick['bid_volume'] = bid_vol_btc
              #   print('ask min vol fiat {} bid min vol fiat {}'.format(ask_min_vol_fiat,bid_min_vol_fiat))
-                print('new tick:\n')
-                print(json.dumps(new_tick,indent=2))
-                print('current tick:\n')
-                print(json.dumps(tick,indent=2))
-                print('btc tick:\n')
-                print(json.dumps(btc_tick,indent=2))
+             #    print('new tick:\n')
+             #    print(json.dumps(new_tick,indent=2))
+             #    print('current tick:\n')
+             #    print(json.dumps(tick,indent=2))
+             #    print('btc tick:\n')
+             #    print(json.dumps(btc_tick,indent=2))
                 tick_list.append(new_tick)
     return(tick_lists)
 
@@ -490,7 +528,7 @@ if __name__=="__main__":
     my_arbitrator = arbitrageur()
     last_time=time.time()
     while(1):
-        if time.time()-last_time>10:
+        if time.time()-last_time>60:
             my_arbitrator.update_info()
             last_time=time.time()
 
